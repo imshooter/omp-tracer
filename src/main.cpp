@@ -8,6 +8,9 @@
 #if defined _WIN32
 	#include <windows.h>
 #else
+	#include <cstring>
+
+	#include <link.h>
 	#include <pthread.h>
 #endif
 
@@ -394,11 +397,21 @@ private:
 
 	void warnAboutCrashdetect() {
 #if defined _WIN32
-		if (GetModuleHandleA("crashdetect.dll") != nullptr) {
+		bool loaded = GetModuleHandleA("crashdetect.dll") != nullptr;
+#else
+		bool loaded = false;
+		dl_iterate_phdr([](dl_phdr_info* info, size_t size, void* data) {
+			(void)size;
+			const char* slash = std::strrchr(info->dlpi_name, '/');
+			bool found = std::strcmp(slash != nullptr ? slash + 1 : info->dlpi_name, "crashdetect.so") == 0;
+			*static_cast<bool*>(data) |= found;
+			return int(found);
+		}, &loaded);
+#endif
+		if (loaded) {
 			state().core->logLn(LogLevel::Warning,
 				"[Tracer] crashdetect is loaded too. It runs every script in its own interpreter, so PawnJIT stays idle and errors are reported twice. Remove it from pawn.legacy_plugins.");
 		}
-#endif
 	}
 
 	std::string report(const char* reason) {

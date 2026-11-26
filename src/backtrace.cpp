@@ -10,6 +10,11 @@
 
 #if defined _WIN32
 	#include <windows.h>
+#else
+	#include <climits>
+
+	#include <dlfcn.h>
+	#include <unistd.h>
 #endif
 
 namespace tracer {
@@ -41,9 +46,14 @@ std::string serverRoot() {
 		if (length != 0 && length < MAX_PATH) {
 			root.assign(buffer, length);
 		}
-#endif
 		std::replace(root.begin(), root.end(), '\\', '/');
 		std::transform(root.begin(), root.end(), root.begin(), [](unsigned char character) { return char(std::tolower(character)); });
+#else
+		char buffer[PATH_MAX];
+		if (getcwd(buffer, sizeof(buffer)) != nullptr) {
+			root = buffer;
+		}
+#endif
 		if (!root.empty() && root.back() != '/') {
 			root += '/';
 		}
@@ -323,8 +333,12 @@ std::string moduleOf(const void* address) {
 	names.emplace(module, name);
 	return name;
 #else
-	(void)address;
-	return std::string();
+	Dl_info info;
+	if (!dladdr(address, &info) || info.dli_fname == nullptr) {
+		return std::string();
+	}
+	const char* slash = std::strrchr(info.dli_fname, '/');
+	return slash != nullptr ? slash + 1 : info.dli_fname;
 #endif
 }
 
@@ -484,7 +498,9 @@ std::string shortPath(const std::string& path) {
 	const std::string& root = serverRoot();
 	if (!root.empty() && normal.size() > root.size()) {
 		std::string head = normal.substr(0, root.size());
+#if defined _WIN32
 		std::transform(head.begin(), head.end(), head.begin(), [](unsigned char character) { return char(std::tolower(character)); });
+#endif
 		if (head == root) {
 			normal.erase(0, root.size());
 		}

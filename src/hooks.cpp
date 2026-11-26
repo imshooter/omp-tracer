@@ -10,6 +10,7 @@
 	#include <intrin.h>
 	#include <windows.h>
 #else
+	#include <dlfcn.h>
 	#include <pthread.h>
 	#include <x86intrin.h>
 #endif
@@ -674,6 +675,11 @@ void pinModule() {
 #if defined _WIN32
 	HMODULE module = nullptr;
 	GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_PIN, reinterpret_cast<LPCSTR>(&execHookFunction), &module);
+#else
+	Dl_info info;
+	if (dladdr(reinterpret_cast<void*>(&execHookFunction), &info) && info.dli_fname != nullptr) {
+		dlopen(info.dli_fname, RTLD_NOW | RTLD_NOLOAD | RTLD_NODELETE);
+	}
 #endif
 }
 
