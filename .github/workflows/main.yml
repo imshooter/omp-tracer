@@ -1,0 +1,235 @@
+name: Build omp-tracer for Linux x86
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-linux:
+    name: Linux x86 32-bit
+    runs-on: ubuntu-24.04
+    container: ubuntu:20.04
+
+    steps:
+      - name: Install build dependencies
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          apt-get update
+          apt-get install -y software-properties-common curl git ninja-build file binutils
+          add-apt-repository -y ppa:ubuntu-toolchain-r/test
+          apt-get update
+          apt-get install -y gcc-14 g++-14 g++-14-multilib
+          curl -sSL https://github.com/Kitware/CMake/releases/download/v3.30.5/cmake-3.30.5-linux-x86_64.tar.gz | tar -xz -C /opt
+          echo /opt/cmake-3.30.5-linux-x86_64/bin >> "$GITHUB_PATH"
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure CMake
+        run: |
+          for natives in OFF ON; do
+            cmake -S . -B "build-$natives" \
+              -G Ninja \
+              -DCMAKE_BUILD_TYPE=Release \
+              -DCMAKE_C_COMPILER=gcc-14 \
+              -DCMAKE_CXX_COMPILER=g++-14 \
+              -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+              -DCMAKE_C_FLAGS=-m32 \
+              -DCMAKE_CXX_FLAGS=-m32 \
+              -DCMAKE_SHARED_LINKER_FLAGS=-m32 \
+              -DTRACER_TEST_NATIVES=$natives
+          done
+
+      - name: Build Tracer
+        run: |
+          cmake --build build-OFF --target Tracer --parallel 2
+          cmake --build build-ON --target Tracer --parallel 2
+
+      - name: Check the library
+        run: |
+          file build-OFF/Tracer.so
+          echo "Newest glibc it needs: $(objdump -T build-OFF/Tracer.so | grep -o 'GLIBC_[0-9.]*' | sort -uV | tail -1)"
+          if objdump -T build-OFF/Tracer.so | grep -q 'GLIBCXX\|CXXABI'; then
+            echo "ERROR: Tracer.so needs the libstdc++ of the system."
+            exit 1
+          fi
+
+      - name: Prepare the Linux build
+        run: |
+          mkdir -p dist/components dist/qawno/include test
+          cp build-OFF/Tracer.so dist/components/
+          cp include/tracer.inc dist/qawno/include/
+          cp LICENSE dist/LICENSE.txt
+          cp deps/subhook/LICENSE.txt dist/LICENSE-subhook.txt
+          cp build-ON/Tracer.so test/
+
+      - name: Upload the Linux build
+        uses: actions/upload-artifact@v4
+        with:
+          name: Tracer-linux-x86
+          path: dist/
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload the build with the test natives
+        uses: actions/upload-artifact@v4
+        with:
+          name: Tracer-linux-x86-test
+          path: test/
+          if-no-files-found: error
+          retention-days: 14
+
+  test-linux:
+    name: Test on ${{ matrix.system }}
+    needs: build-linux
+    runs-on: ubuntu-24.04
+    container: ${{ matrix.system }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        system:
+          - ubuntu:20.04
+          - debian:12
+          - ubuntu:24.04
+
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Install the libraries of the server
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          dpkg --add-architecture i386
+          apt-get update
+          apt-get install -y curl ca-certificates libc6:i386 libatomic1:i386 libstdc++6:i386
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download the Linux build
+        uses: actions/download-artifact@v4
+        with:
+          name: Tracer-linux-x86
+          path: dist
+
+      - name: Download the build with the test natives
+        uses: actions/download-artifact@v4
+        with:
+          name: Tracer-linux-x86-test
+          path: test
+
+      - name: Download open.mp and the Pawn compiler
+        run: |
+          curl -sSL -o omp.tar.gz https://github.com/openmultiplayer/open.mp/releases/download/v1.6.7.3218/open.mp-linux-x86.tar.gz
+          mkdir omp
+          tar -xzf omp.tar.gz -C omp
+          curl -sSL -o pawnc.tar.gz https://github.com/openmultiplayer/compiler/releases/download/v3.10.11/pawnc-3.10.11-linux.tar.gz
+          mkdir pawnc
+          tar -xzf pawnc.tar.gz -C pawnc
+
+      - name: Run the tests
+        run: |
+          set +e +o pipefail
+          server=$(cd "$(dirname "$(find omp -name omp-server -type f | head -1)")" && pwd)
+          pawncc=$(find pawnc -name pawncc -type f | head -1)
+          includes=$(dirname "$(find omp -name open.mp.inc | head -1)")
+          export LD_LIBRARY_PATH="$(dirname "$(find pawnc -name 'libpawnc.so' | head -1)")"
+          mkdir -p "$server/gamemodes" logs
+          chmod +x "$server/omp-server"
+          for name in tracer-test crash-test report-test; do
+            "$pawncc" "$PWD/tests/$name.pwn" -iinclude "-i$includes" '-;+' '-(+' -d3 "-o$server/gamemodes/$name.amx" || exit 1
+          done
+
+          start() {
+            cp "$2" "$server/components/Tracer.so"
+            cat > "$server/config.json" <<EOF
+          {
+              "announce": false,
+              "enable_query": false,
+              "max_players": 2,
+              "name": "omp-tracer test",
+              "network": { "bind": "127.0.0.1", "port": 7777 },
+              "pawn": { "legacy_plugins": [], "main_scripts": ["$1"], "side_scripts": [] },
+              "rcon": { "enable": false, "password": "omp-tracer-test" },
+              "tracer": $3,
+              "logging": { "use_prefix": false, "use_timestamp": false }
+          }
+          EOF
+            (cd "$server" && exec ./omp-server) > "logs/$4.txt" 2>&1 &
+            pid=$!
+          }
+
+          finish() {
+            (sleep "$1"; kill -KILL "$pid" 2>/dev/null) &
+            wait "$pid"
+            echo "::group::$2, exit $?"
+            grep -av "Recurse(depth=[0-9]*) at\|Loading component\|Successfully loaded" "logs/$2.txt"
+            echo "::endgroup::"
+          }
+
+          failed=0
+          expect() {
+            if ! grep -qaF -- "$2" "logs/$1.txt"; then
+              echo "MISSING in $1: $2"
+              failed=1
+            fi
+          }
+
+          start tracer-test dist/components/Tracer.so '{ "error_repeat": 1, "hang_time": 3000 }' errors
+          finish 40 errors
+          expect errors "watches run time errors"
+          expect errors "[Tracer] Run time error 4 in tracer-test: array index out of bounds"
+          expect errors "index 3 is out of bounds, values has size 3"
+          expect errors "32 | total += values[i];"
+          expect errors "#0 Sum(values[3]={1, 2, 3}, count=6) at"
+          expect errors "#2 native CallLocalFunction() in Pawn.so"
+          expect errors "[Tracer] Native backtrace:"
+          expect errors "Tracer.so+0x"
+          expect errors "Long call: public @Test_LongCall of tracer-test"
+          expect errors "stack and heap collided"
+          expect errors "more calls of Recurse"
+          expect errors "public @Test_Recursion() at"
+          expect errors "public @Test_Hang of tracer-test has been running for"
+          expect errors "more times in the last"
+          expect errors "[test] the script saw"
+
+          start tracer-test dist/components/Tracer.so '{ "error_repeat": 1, "hang_time": 30000 }' interrupt
+          sleep 5
+          kill -INT "$pid"
+          finish 30 interrupt
+          expect interrupt "The server was interrupted while public @Test_Hang of tracer-test was running"
+          expect interrupt "#0 Busy(milliseconds=4000) at"
+
+          start crash-test test/Tracer.so '{}' crash
+          finish 20 crash
+          expect crash "[Tracer] The server crashed: segmentation fault writing address 0x00000000"
+          expect crash "while crash-test ran native Tracer_TestCrash, called at"
+          expect crash "#1 Inner(value=2) at"
+          expect crash "#3 public @Test_Crash() at"
+          expect crash "#0 Tracer.so+0x"
+          expect crash "Pawn.so+0x"
+          expect crash "EIP "
+          expect crash "components/Tracer.so"
+          if grep -q "linux-gate" logs/crash.txt; then
+            echo "UNEXPECTED in crash: linux-gate"
+            failed=1
+          fi
+
+          rm -rf "$server/tracer"
+          start report-test dist/components/Tracer.so '{ "profile": true, "profile_functions": true }' report
+          finish 40 report
+          expect report "Broken("
+          if [ ! -s "$server/tracer/latest.html" ]; then
+            echo "MISSING: the report tracer/latest.html"
+            failed=1
+          fi
+
+          exit $failed
