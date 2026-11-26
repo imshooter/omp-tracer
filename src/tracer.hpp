@@ -42,6 +42,18 @@ struct Stat {
 };
 
 /**
+ * @brief      How the instructions of a script are written in its code.
+ *
+ * An interpreter built with GCC replaces every opcode with the address of its label and adds the address of the
+ * code to every jump.
+ */
+enum class CodeForm : uint8_t {
+	Numbers,
+	Labels,
+	Unknown
+};
+
+/**
  * @brief      A loaded script.
  */
 struct Script {
@@ -54,7 +66,7 @@ struct Script {
 	AMX_CALLBACK previousCallback = nullptr;
 	AMX_DEBUG previousDebug = nullptr;
 	bool debugHooked = false;
-	bool numericOpcodes = true;
+	CodeForm codeForm = CodeForm::Numbers;
 	bool hinted = false;
 	int publicCount = 0;
 	int nativeCount = 0;
@@ -427,6 +439,7 @@ struct State {
 	uint64_t overheadPerEvent = 0;
 	AMX_CALLBACK exportedCallback = nullptr;
 	void* execTrampoline = nullptr;
+	std::unordered_map<cell, cell> opcodeNumbers;
 };
 
 extern State* stateInstance;
@@ -592,6 +605,14 @@ std::string location(Script& script, cell cip);
  * @brief      The text of a source line, without its indentation.
  */
 std::string sourceLine(Script& script, cell cip);
+
+/**
+ * @brief      The number of the opcode a cell of code holds, as the file format numbers it.
+ *
+ * @return     - the opcode
+ *             - `0` the cell holds no opcode the component knows
+ */
+cell opcodeNumber(const Script& script, cell value);
 
 /**
  * @brief      A path of a source file made short: relative to the server when it is inside it.

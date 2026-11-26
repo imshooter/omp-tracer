@@ -100,15 +100,15 @@ enum Opcode : cell {
 /**
  * @brief      The number of cells an instruction takes, its opcode included.
  *
- * @param      code   Code section of the script.
- * @param      cip    Address of the instruction.
- * @param      size   Size of the code section in bytes.
+ * @param      opcode  Number of the opcode of the instruction.
+ * @param      code    Code section of the script.
+ * @param      cip     Address of the instruction.
+ * @param      size    Size of the code section in bytes.
  *
  * @return     - the number of cells
  *             - `0` the instruction is not valid
  */
-inline cell instructionCells(const unsigned char* code, cell cip, cell size) {
-	cell opcode = *reinterpret_cast<const cell*>(code + cip);
+inline cell instructionCells(cell opcode, const unsigned char* code, cell cip, cell size) {
 	switch (opcode) {
 	case 138: case 139: case 140: case 141:
 	case 154: case 155: case 156: case 157:

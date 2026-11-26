@@ -256,13 +256,14 @@ std::string publicAt(Script& script, cell entry) {
 	return std::string();
 }
 
-cell calleeOf(AMX* amx, cell returnAddress) {
+cell calleeOf(Script& script, cell returnAddress) {
+	AMX* amx = script.amx;
 	cell size = codeSize(amx);
-	if (returnAddress < cell(2 * sizeof(cell)) || returnAddress > size) {
+	if (script.codeForm == CodeForm::Unknown || returnAddress < cell(2 * sizeof(cell)) || returnAddress > size) {
 		return -1;
 	}
 	const unsigned char* code = amx->base + reinterpret_cast<AMX_HEADER*>(amx->base)->cod;
-	if (*reinterpret_cast<const cell*>(code + returnAddress - 2 * sizeof(cell)) != OpCall) {
+	if (opcodeNumber(script, *reinterpret_cast<const cell*>(code + returnAddress - 2 * sizeof(cell))) != OpCall) {
 		return -1;
 	}
 	cell target = *reinterpret_cast<const cell*>(code + returnAddress - sizeof(cell));
@@ -397,7 +398,7 @@ void appendBacktrace(std::vector<std::string>& lines, int& number, Script& origi
 			const cell* link = cellsAt(amx, frame, 2);
 			cell returnAddress = link != nullptr ? link[1] : 0;
 			bool last = returnAddress <= 0 || returnAddress >= codeSize(amx);
-			steps.push_back({ place, frame, last ? publicEntry : calleeOf(amx, returnAddress), last });
+			steps.push_back({ place, frame, last ? publicEntry : calleeOf(*script, returnAddress), last });
 			if (last || link[0] <= frame) {
 				break;
 			}
@@ -463,6 +464,15 @@ void appendBacktrace(std::vector<std::string>& lines, int& number, Script& origi
 	}
 }
 
+}
+
+cell opcodeNumber(const Script& script, cell value) {
+	if (script.codeForm == CodeForm::Numbers) {
+		return value;
+	}
+	const auto& numbers = state().opcodeNumbers;
+	auto found = numbers.find(value);
+	return found != numbers.end() ? found->second : OpNone;
 }
 
 std::string shortPath(const std::string& path) {
@@ -589,7 +599,7 @@ std::string formatPublicCall(Script& script, int index) {
 std::string functionAtFrame(Script& script, cell place, cell frame, cell publicEntry) {
 	const cell* link = cellsAt(script.amx, frame, 2);
 	cell returnAddress = link != nullptr ? link[1] : 0;
-	cell entry = returnAddress > 0 && returnAddress < codeSize(script.amx) ? calleeOf(script.amx, returnAddress) : publicEntry;
+	cell entry = returnAddress > 0 && returnAddress < codeSize(script.amx) ? calleeOf(script, returnAddress) : publicEntry;
 	FrameName named = nameFrame(script, place, entry);
 	return named.name == "??" ? std::string() : named.name;
 }

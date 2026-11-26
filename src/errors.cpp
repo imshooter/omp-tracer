@@ -39,10 +39,10 @@ const cell* cellAt(AMX* amx, cell address) {
 
 bool opcodeAt(Script& script, cell cip, cell& opcode) {
 	AMX* amx = script.amx;
-	if (!script.numericOpcodes || cip < 0 || (cip & (sizeof(cell) - 1)) != 0 || cip > codeSizeOf(amx) - cell(sizeof(cell))) {
+	if (script.codeForm == CodeForm::Unknown || cip < 0 || (cip & (sizeof(cell) - 1)) != 0 || cip > codeSizeOf(amx) - cell(sizeof(cell))) {
 		return false;
 	}
-	opcode = *reinterpret_cast<const cell*>(codeOf(amx) + cip);
+	opcode = opcodeNumber(script, *reinterpret_cast<const cell*>(codeOf(amx) + cip));
 	return true;
 }
 
@@ -53,7 +53,7 @@ cell operandAt(Script& script, cell cip, int index) {
 std::vector<Instruction> statementCode(Script& script, cell place) {
 	std::vector<Instruction> code;
 	ucell start, end;
-	if (!script.debug || !script.numericOpcodes || !script.debug->statementAt(ucell(place), start, end)) {
+	if (!script.debug || script.codeForm == CodeForm::Unknown || !script.debug->statementAt(ucell(place), start, end)) {
 		return code;
 	}
 	AMX* amx = script.amx;
@@ -61,11 +61,12 @@ std::vector<Instruction> statementCode(Script& script, cell place) {
 	cell size = codeSizeOf(amx);
 	cell cip = cell(start);
 	while (cip < cell(end) && cip < size && code.size() < 512) {
-		cell cells = instructionCells(base, cip, size);
+		cell opcode = opcodeNumber(script, *reinterpret_cast<const cell*>(base + cip));
+		cell cells = instructionCells(opcode, base, cip, size);
 		if (cells == 0) {
 			break;
 		}
-		code.push_back({ cip, *reinterpret_cast<const cell*>(base + cip), reinterpret_cast<const cell*>(base + cip) + 1 });
+		code.push_back({ cip, opcode, reinterpret_cast<const cell*>(base + cip) + 1 });
 		cip += cells * cell(sizeof(cell));
 	}
 	return code;

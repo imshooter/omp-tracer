@@ -18,6 +18,28 @@ namespace {
 constexpr int AmxExportCallback = 4;
 constexpr int AmxExportExec = 7;
 
+/**
+ * The interpreter gives the addresses of its labels to a script it browses, as amx_Init asks for them before it
+ * writes them over the opcodes.
+ */
+bool readOpcodeLabels() {
+	State& s = state();
+	if (!s.opcodeNumbers.empty()) {
+		return true;
+	}
+	auto exec = reinterpret_cast<int(AMXAPI*)(AMX*, cell*, int)>(s.execTrampoline);
+	AMX probe = {};
+	probe.flags = AMX_FLAG_BROWSE;
+	cell labels = 0;
+	if (exec == nullptr || exec(&probe, &labels, 0) != AMX_ERR_NONE || labels == 0) {
+		return false;
+	}
+	for (cell number = OpNone + 1; number != OpCount; ++number) {
+		s.opcodeNumbers.emplace(reinterpret_cast<const cell*>(labels)[number], number);
+	}
+	return true;
+}
+
 std::vector<std::string> readStrings(IConfig& config, const char* key) {
 	std::vector<StringView> views(config.getStringsCount(key));
 	config.getStrings(key, Span<StringView>(views.data(), views.size()));
@@ -197,7 +219,10 @@ public:
 		script->traced = isTraced(script->name);
 		auto* header = reinterpret_cast<AMX_HEADER*>(amx->base);
 		ucell entry = script->publicCount != 0 ? (GETENTRY(header, publics, 0))->address : ucell(header->cip);
-		script->numericOpcodes = entry < ucell(header->dat - header->cod) && *reinterpret_cast<const cell*>(amx->base + header->cod + entry) == OpProc;
+		cell first = entry < ucell(header->dat - header->cod) ? *reinterpret_cast<const cell*>(amx->base + header->cod + entry) : OpNone;
+		auto label = first != OpProc && readOpcodeLabels() ? s.opcodeNumbers.find(first) : s.opcodeNumbers.end();
+		bool labels = label != s.opcodeNumbers.end() && label->second == OpProc;
+		script->codeForm = first == OpProc ? CodeForm::Numbers : (labels ? CodeForm::Labels : CodeForm::Unknown);
 		if ((header->flags & AMX_FLAG_DEBUG) && !script->debug) {
 			auto debug = std::make_unique<DebugInfo>();
 			if (debug->load(script->path)) {
