@@ -1,5 +1,7 @@
 # Tracer
 
+[![release](https://img.shields.io/github/v/release/imshooter/omp-tracer)](https://github.com/imshooter/omp-tracer/releases/latest) [![Build](https://img.shields.io/github/actions/workflow/status/imshooter/omp-tracer/main.yml?branch=main&label=Build&logo=github)](https://github.com/imshooter/omp-tracer/actions/workflows/main.yml)
+
 An open.mp component that tells where a Pawn script fails and where its time goes. It reports run time errors with the line, its source and a backtrace with the arguments of every call, calls that take too long or never return, and crashes of the server. It profiles the scripts on demand and writes the results to an HTML report. Every setting lives in `config.json`, and a change to it applies while the server runs.
 
 Tracer does what crashdetect does without an interpreter of its own, so scripts keep running in the interpreter of the server or in PawnJIT.
@@ -37,14 +39,14 @@ The report written while profiling:
 
 ## Installation
 
-1. Download the latest release from [Releases](https://github.com/imshooter/Tracer/releases).
-2. Place `Tracer.dll` in the `components` folder of the server.
+1. Download the latest release from [Releases](https://github.com/imshooter/omp-tracer/releases), the `windows-x86` or the `linux-x86` zip.
+2. Place `Tracer.dll` or `Tracer.so` in the `components` folder of the server.
 3. Place `tracer.inc` in the include folder of the compiler, for scripts that use its natives or `OnRuntimeError`.
 4. Remove crashdetect from `pawn.legacy_plugins`. Both report the same errors, and crashdetect runs every script in its own interpreter, which leaves PawnJIT idle.
 
 Compile scripts with `-d3`, or at least `-d2`, so the reports have files, lines, functions and arguments. A script without debug information is reported with code addresses.
 
-Tested with open.mp 1.6.7 on Windows. Only a Windows build is available for now.
+Tested with open.mp 1.6.7 on Windows, Ubuntu 20.04, Debian 12 and Ubuntu 24.04. The Linux build needs glibc 2.30 or later, and its native backtraces name only the functions a module exports.
 
 ## Configuration
 
@@ -172,18 +174,28 @@ The bots need the NPC component of open.mp.
 
 - [`tests/tracer-test.pwn`](tests/tracer-test.pwn) makes every report in one run: an error inside `CallLocalFunction`, one suppressed by `OnRuntimeError`, the backtrace natives, a long call, an error repeated twenty times, a recursion that runs out of stack and a call stuck for four seconds. Run it with `error_repeat` set to `1`.
 - [`tests/report-test.pwn`](tests/report-test.pwn) gives every part of the report something to show in four seconds.
+- [`tests/crash-test.pwn`](tests/crash-test.pwn) crashes the server from a native, with a build configured with `-DTRACER_TEST_NATIVES=ON`.
 - [`tests/call-cost.pwn`](tests/call-cost.pwn) measures the time of a native call and of `CallLocalFunction`, to compare a server with and without Tracer.
+
+GitHub Actions runs `tracer-test`, `crash-test` and `report-test` on open.mp for Linux at every push, and interrupts the stuck call with Ctrl+C once.
 
 ## Building
 
-Windows with Visual Studio 2022 or its Build Tools, and CMake 3.19 or later. CMake fetches the open.mp SDK and the Pawn headers.
+CMake 3.19 or later fetches the open.mp SDK and the Pawn headers. On Windows, with Visual Studio 2022 or its Build Tools:
 
 ```
 cmake -S . -B build -A Win32
-cmake --build build --config Release
+cmake --build build --config Release --target Tracer
 ```
 
-The component is written to `build/Release/Tracer.dll`. The server is 32 bit, so the component must be too.
+On Linux, with GCC and its 32 bit libraries:
+
+```
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS=-m32 -DCMAKE_CXX_FLAGS=-m32 -DCMAKE_SHARED_LINKER_FLAGS=-m32
+cmake --build build --target Tracer
+```
+
+The component is written to `build/Release/Tracer.dll` or `build/Tracer.so`. The server is 32 bit, so the component must be too. The Linux release is built on Ubuntu 20.04, as [`.github/workflows/main.yml`](.github/workflows/main.yml) does.
 
 ## Thanks to
 
