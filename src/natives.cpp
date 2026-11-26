@@ -114,11 +114,15 @@ cell AMX_NATIVE_CALL Tracer_RestartLongCall(AMX* amx, const cell* params) {
 }
 
 #if defined TRACER_TEST_NATIVES
+/**
+ * Volatile at both levels, so no compiler drops the write to it.
+ */
+volatile int* volatile crashTarget = nullptr;
+
 cell AMX_NATIVE_CALL Tracer_TestCrash(AMX* amx, const cell* params) {
 	(void)amx;
 	(void)params;
-	volatile int* address = nullptr;
-	*address = 1;
+	*crashTarget = 1;
 	return 0;
 }
 #endif
