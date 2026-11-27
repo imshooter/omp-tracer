@@ -23,36 +23,36 @@
  *
  * @param      microseconds  The time, or `0` to stop reporting long calls.
  */
-native Tracer_SetLongCallTime(microseconds);
+native SetTracerLongCallTime(microseconds);
 
 /**
  * @brief      How long a top level call may run before it is reported.
  *
  * @return     The time in microseconds.
  */
-native Tracer_GetLongCallTime();
+native GetTracerLongCallTime();
 
 /**
  * @brief      How long a top level call may run as `tracer.long_call_time` sets it.
  *
  * @return     The time in microseconds.
  */
-native Tracer_GetDefaultLongCallTime();
+native GetTracerDefaultLongCallTime();
 
 /**
  * @brief      Go back to the time `tracer.long_call_time` sets.
  */
-native Tracer_ResetLongCallTime();
+native ResetTracerLongCallTime();
 
 /**
- * @brief      Report long calls again after `Tracer_DisableLongCall`.
+ * @brief      Report long calls again after `DisableTracerLongCall`.
  */
-native Tracer_EnableLongCall();
+native EnableTracerLongCall();
 
 /**
- * @brief      Stop reporting long calls until `Tracer_EnableLongCall`.
+ * @brief      Stop reporting long calls until `EnableTracerLongCall`.
  */
-native Tracer_DisableLongCall();
+native DisableTracerLongCall();
 
 /**
  * @brief      Whether long calls are reported.
@@ -60,13 +60,13 @@ native Tracer_DisableLongCall();
  * @return     - `true` they are
  *             - `false` they are not, or the time is `0`
  */
-native bool:Tracer_IsLongCallEnabled();
+native bool:IsTracerLongCallEnabled();
 
 /**
  * @brief      Count the current top level call from now, so a task known to be long is not
  *             reported.
  */
-native Tracer_RestartLongCall();
+native RestartTracerLongCall();
 
 /**
  * # crashdetect
@@ -120,31 +120,31 @@ native Tracer_RestartLongCall();
     }
 
     stock SetCrashDetectLongCallTime(us_time) {
-        return Tracer_SetLongCallTime(us_time);
+        return SetTracerLongCallTime(us_time);
     }
 
     stock GetCrashDetectLongCallTime() {
-        return Tracer_GetLongCallTime();
+        return GetTracerLongCallTime();
     }
 
     stock DisableCrashDetectLongCall() {
-        return Tracer_DisableLongCall();
+        return DisableTracerLongCall();
     }
 
     stock EnableCrashDetectLongCall() {
-        return Tracer_EnableLongCall();
+        return EnableTracerLongCall();
     }
 
     stock ResetCrashDetectLongCallTime() {
-        return Tracer_ResetLongCallTime();
+        return ResetTracerLongCallTime();
     }
 
     stock RestartCrashDetectLongCall() {
-        return Tracer_RestartLongCall();
+        return RestartTracerLongCall();
     }
 
     stock bool:IsCrashDetectLongCallEnabled() {
-        return Tracer_IsLongCallEnabled();
+        return IsTracerLongCallEnabled();
     }
 
     stock bool:HasCrashDetectLongCall() {
@@ -152,6 +152,6 @@ native Tracer_RestartLongCall();
     }
 
     stock GetCrashDetectDefaultTime() {
-        return Tracer_GetDefaultLongCallTime();
+        return GetTracerDefaultLongCallTime();
     }
 #endif

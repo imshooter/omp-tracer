@@ -129,15 +129,17 @@ forward OnRuntimeError(code, &bool:suppress);
 The long call stocks of `crashdetect.inc`, such as `SetCrashDetectLongCallTime` and `RestartCrashDetectLongCall`, are there too, on top of these natives:
 
 ```pawn
-native Tracer_SetLongCallTime(microseconds);
-native Tracer_GetLongCallTime();
-native Tracer_GetDefaultLongCallTime();
-native Tracer_ResetLongCallTime();
-native Tracer_EnableLongCall();
-native Tracer_DisableLongCall();
-native bool:Tracer_IsLongCallEnabled();
-native Tracer_RestartLongCall();
+native SetTracerLongCallTime(microseconds);
+native GetTracerLongCallTime();
+native GetTracerDefaultLongCallTime();
+native ResetTracerLongCallTime();
+native EnableTracerLongCall();
+native DisableTracerLongCall();
+native bool:IsTracerLongCallEnabled();
+native RestartTracerLongCall();
 ```
+
+Scripts compiled with the `Tracer_` names of 0.1 keep loading, since the component still answers to them.
 
 ## How it finds an error
 

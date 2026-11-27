@@ -211,7 +211,7 @@ jobs:
           start crash-test test/Tracer.so '{}' crash
           finish 20 crash
           expect crash "[Tracer] The server crashed: segmentation fault writing address 0x00000000"
-          expect crash "while crash-test ran native Tracer_TestCrash, called at"
+          expect crash "while crash-test ran native TestTracerCrash, called at"
           expect crash "#1 Inner(value=2) at"
           expect crash "#3 public @Test_Crash() at"
           expect crash "#0 Tracer.so+0x"

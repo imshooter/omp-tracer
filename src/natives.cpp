@@ -58,39 +58,39 @@ cell AMX_NATIVE_CALL GetNativeBacktrace(AMX* amx, const cell* params) {
 	return setString(amx, params[1], params[2], join(nativeBacktrace(nullptr)));
 }
 
-cell AMX_NATIVE_CALL Tracer_SetLongCallTime(AMX* amx, const cell* params) {
+cell AMX_NATIVE_CALL SetTracerLongCallTime(AMX* amx, const cell* params) {
 	(void)amx;
 	setLongCallTime(params[1]);
 	return 1;
 }
 
-cell AMX_NATIVE_CALL Tracer_GetLongCallTime(AMX* amx, const cell* params) {
+cell AMX_NATIVE_CALL GetTracerLongCallTime(AMX* amx, const cell* params) {
 	(void)amx;
 	(void)params;
 	return state().longCallCurrent;
 }
 
-cell AMX_NATIVE_CALL Tracer_GetDefaultLongCallTime(AMX* amx, const cell* params) {
+cell AMX_NATIVE_CALL GetTracerDefaultLongCallTime(AMX* amx, const cell* params) {
 	(void)amx;
 	(void)params;
 	return state().settings.longCallTime;
 }
 
-cell AMX_NATIVE_CALL Tracer_ResetLongCallTime(AMX* amx, const cell* params) {
+cell AMX_NATIVE_CALL ResetTracerLongCallTime(AMX* amx, const cell* params) {
 	(void)amx;
 	(void)params;
 	setLongCallTime(state().settings.longCallTime);
 	return 1;
 }
 
-cell AMX_NATIVE_CALL Tracer_EnableLongCall(AMX* amx, const cell* params) {
+cell AMX_NATIVE_CALL EnableTracerLongCall(AMX* amx, const cell* params) {
 	(void)amx;
 	(void)params;
 	state().longCallEnabled = true;
 	return 1;
 }
 
-cell AMX_NATIVE_CALL Tracer_DisableLongCall(AMX* amx, const cell* params) {
+cell AMX_NATIVE_CALL DisableTracerLongCall(AMX* amx, const cell* params) {
 	(void)amx;
 	(void)params;
 	State& s = state();
@@ -99,14 +99,14 @@ cell AMX_NATIVE_CALL Tracer_DisableLongCall(AMX* amx, const cell* params) {
 	return 1;
 }
 
-cell AMX_NATIVE_CALL Tracer_IsLongCallEnabled(AMX* amx, const cell* params) {
+cell AMX_NATIVE_CALL IsTracerLongCallEnabled(AMX* amx, const cell* params) {
 	(void)amx;
 	(void)params;
 	State& s = state();
 	return s.longCallEnabled && s.longCallCurrent != 0;
 }
 
-cell AMX_NATIVE_CALL Tracer_RestartLongCall(AMX* amx, const cell* params) {
+cell AMX_NATIVE_CALL RestartTracerLongCall(AMX* amx, const cell* params) {
 	(void)amx;
 	(void)params;
 	restartLongCall();
@@ -119,7 +119,7 @@ cell AMX_NATIVE_CALL Tracer_RestartLongCall(AMX* amx, const cell* params) {
  */
 volatile int* volatile crashTarget = nullptr;
 
-cell AMX_NATIVE_CALL Tracer_TestCrash(AMX* amx, const cell* params) {
+cell AMX_NATIVE_CALL TestTracerCrash(AMX* amx, const cell* params) {
 	(void)amx;
 	(void)params;
 	*crashTarget = 1;
@@ -134,16 +134,24 @@ const AMX_NATIVE_INFO natives[] = {
 	{ "GetNativeBacktrace", GetNativeBacktrace },
 	{ "PrintAmxBacktrace", PrintBacktrace },
 	{ "GetAmxBacktrace", GetBacktrace },
-	{ "Tracer_SetLongCallTime", Tracer_SetLongCallTime },
-	{ "Tracer_GetLongCallTime", Tracer_GetLongCallTime },
-	{ "Tracer_GetDefaultLongCallTime", Tracer_GetDefaultLongCallTime },
-	{ "Tracer_ResetLongCallTime", Tracer_ResetLongCallTime },
-	{ "Tracer_EnableLongCall", Tracer_EnableLongCall },
-	{ "Tracer_DisableLongCall", Tracer_DisableLongCall },
-	{ "Tracer_IsLongCallEnabled", Tracer_IsLongCallEnabled },
-	{ "Tracer_RestartLongCall", Tracer_RestartLongCall },
+	{ "SetTracerLongCallTime", SetTracerLongCallTime },
+	{ "GetTracerLongCallTime", GetTracerLongCallTime },
+	{ "GetTracerDefaultLongCallTime", GetTracerDefaultLongCallTime },
+	{ "ResetTracerLongCallTime", ResetTracerLongCallTime },
+	{ "EnableTracerLongCall", EnableTracerLongCall },
+	{ "DisableTracerLongCall", DisableTracerLongCall },
+	{ "IsTracerLongCallEnabled", IsTracerLongCallEnabled },
+	{ "RestartTracerLongCall", RestartTracerLongCall },
+	{ "Tracer_SetLongCallTime", SetTracerLongCallTime },
+	{ "Tracer_GetLongCallTime", GetTracerLongCallTime },
+	{ "Tracer_GetDefaultLongCallTime", GetTracerDefaultLongCallTime },
+	{ "Tracer_ResetLongCallTime", ResetTracerLongCallTime },
+	{ "Tracer_EnableLongCall", EnableTracerLongCall },
+	{ "Tracer_DisableLongCall", DisableTracerLongCall },
+	{ "Tracer_IsLongCallEnabled", IsTracerLongCallEnabled },
+	{ "Tracer_RestartLongCall", RestartTracerLongCall },
 #if defined TRACER_TEST_NATIVES
-	{ "Tracer_TestCrash", Tracer_TestCrash },
+	{ "TestTracerCrash", TestTracerCrash },
 #endif
 };
 

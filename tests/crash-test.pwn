@@ -2,17 +2,17 @@
 #include <tracer>
 
 /**
- * A crash on purpose, for a build with TRACER_TEST_NATIVES on: Tracer_TestCrash writes to address 0 from a native
+ * A crash on purpose, for a build with TRACER_TEST_NATIVES on: TestTracerCrash writes to address 0 from a native
  * called two functions deep in a timer. Tracer prints what crashed, the Pawn and native backtraces, the registers
  * and the modules of the server.
  */
 
-native Tracer_TestCrash();
+native TestTracerCrash();
 
 main() {}
 
 stock Inner(value) {
-    Tracer_TestCrash();
+    TestTracerCrash();
 
     return value;
 }
