@@ -228,8 +228,8 @@ jobs:
           start report-test dist/components/Tracer.so '{ "profile": true, "profile_functions": true }' report
           finish 40 report
           expect report "Broken("
-          if [ ! -s "$server/tracer/latest.html" ]; then
-            echo "MISSING: the report tracer/latest.html"
+          if [ ! -s "$server/scriptfiles/tracer/latest.html" ]; then
+            echo "MISSING: the report scriptfiles/tracer/latest.html"
             failed=1
           fi
 

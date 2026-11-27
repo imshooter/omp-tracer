@@ -352,7 +352,7 @@ struct Settings {
 	bool profileNatives = true;
 	bool profileCallers = true;
 	bool profileFunctions = false;
-	std::string output = "tracer";
+	std::string output = "scriptfiles/tracer";
 };
 
 enum TraceFlags : unsigned {

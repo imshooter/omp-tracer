@@ -395,7 +395,7 @@ Settings readSettings(Source& source) {
 		std::replace(name.begin(), name.end(), '\\', '/');
 	}
 	if (settings.output.empty()) {
-		settings.output = "tracer";
+		settings.output = "scriptfiles/tracer";
 	}
 	return settings;
 }

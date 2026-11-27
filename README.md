@@ -69,7 +69,7 @@ Every setting is optional. These are the defaults:
     "profile_natives": true,
     "profile_callers": true,
     "profile_functions": false,
-    "output": "tracer"
+    "output": "scriptfiles/tracer"
 }
 ```
 
@@ -112,7 +112,7 @@ A file that is not valid JSON at that moment, as while an editor saves it, leave
 | `tracer reload` | Reads `config.json` again. |
 | `tracer errors` | Lists every place an error happened, with its count. |
 
-Commands are read from the server console, from RCON and from `SendRconCommand`. A report is also written when the server exits or the main script unloads while profiling. Reports go to `tracer/<script>-<date>.html`, and `tracer/latest.html` is always the newest one.
+Commands are read from the server console, from RCON and from `SendRconCommand`. A report is also written when the server exits or the main script unloads while profiling. Reports go to `scriptfiles/tracer/<script>-<date>.html`, and `scriptfiles/tracer/latest.html` is always the newest one.
 
 ## Scripts
 
@@ -168,7 +168,7 @@ On a large gamemode with 60 bots, the whole server used 5.8% of one core with cr
 
 1. Compile it with `-d3`.
 2. In `config.json`, set `max_players` and `max_bots` to 50 or more, `pawn.main_scripts` to `["stress-example"]` and `tracer.profile` to `true`.
-3. Start the server. It shuts down after three minutes and the report is in `tracer/`.
+3. Start the server. It shuts down after three minutes and the report is in `scriptfiles/tracer/`.
 
 The bots need the NPC component of open.mp.
 
