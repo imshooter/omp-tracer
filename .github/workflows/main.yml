@@ -188,7 +188,7 @@ jobs:
           expect errors "watches run time errors"
           expect errors "[Tracer] Run time error 4 in tracer-test: array index out of bounds"
           expect errors "index 3 is out of bounds, values has size 3"
-          expect errors "32 | total += values[i];"
+          expect errors "35 | total += values[i];"
           expect errors "#0 Sum(values[3]={1, 2, 3}, count=6) at"
           expect errors "#2 native CallLocalFunction() in Pawn.so"
           expect errors "[Tracer] Native backtrace:"
