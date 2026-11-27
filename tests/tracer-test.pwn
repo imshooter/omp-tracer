@@ -2,7 +2,8 @@
 #include <tracer>
 
 /**
- * Every report of Tracer in one run, each started from its own timer: an error inside CallLocalFunction,
+ * Every report of Tracer in one run, each started from its own timer: the long call natives, with a name
+ * of 0.1 and a stock of crashdetect, an error inside CallLocalFunction,
  * OnRuntimeError suppressing one, the backtrace natives, a long call, an error repeated twenty times,
  * a recursion that never ends and a call stuck in a loop for four seconds. Run with error_repeat 1 and
  * hang_time 3000.
@@ -16,6 +17,8 @@ static
     bool:gSuppress,
     gRepeatTimer
 ;
+
+native Tracer_GetLongCallTime();
 
 main() {}
 
@@ -104,6 +107,33 @@ public @Test_Backtrace() {
     return 1;
 }
 
+forward @Test_LongCallNatives();
+public @Test_LongCallNatives() {
+    new const
+        initial = GetTracerDefaultLongCallTime()
+    ;
+    new
+        read,
+        legacy,
+        crashdetect,
+        bool:off,
+        bool:on
+    ;
+
+    SetTracerLongCallTime(7000);
+    read = GetTracerLongCallTime();
+    legacy = Tracer_GetLongCallTime();
+    crashdetect = GetCrashDetectLongCallTime();
+    DisableTracerLongCall();
+    off = IsTracerLongCallEnabled();
+    EnableTracerLongCall();
+    on = IsTracerLongCallEnabled();
+    ResetTracerLongCallTime();
+    printf("[test] long call time set 7000 read %i, old name %i, crashdetect stock %i, off %i, on %i, back to the default %i", read, legacy, crashdetect, off, on, GetTracerLongCallTime() == initial);
+
+    return 1;
+}
+
 forward @Test_LongCall();
 public @Test_LongCall() {
     Busy(20);
@@ -154,6 +184,7 @@ public @Test_Exit() {
 }
 
 public OnGameModeInit() {
+    SetTimer("@Test_LongCallNatives", 150, false);
     SetTimer("@Test_Nested", 300, false);
     SetTimer("@Test_Suppress", 500, false);
     SetTimer("@Test_Backtrace", 700, false);

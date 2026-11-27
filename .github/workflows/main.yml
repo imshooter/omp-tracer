@@ -193,6 +193,7 @@ jobs:
           expect errors "#2 native CallLocalFunction() in Pawn.so"
           expect errors "[Tracer] Native backtrace:"
           expect errors "Tracer.so+0x"
+          expect errors "[test] long call time set 7000 read 7000, old name 7000, crashdetect stock 7000, off 0, on 1, back to the default 1"
           expect errors "Long call: public @Test_LongCall of tracer-test"
           expect errors "stack and heap collided"
           expect errors "more calls of Recurse"
